@@ -50,11 +50,11 @@ export class User {
   @Column({ default: false })
   isEmailVerified!: boolean;
 
-  @Column({ nullable: true })
-  verificationToken?: string;
+  @Column({ type: 'varchar', nullable: true })
+  verificationToken?: string | null;
 
-  @Column({ nullable: true })
-  verificationTokenExpiry?: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  verificationTokenExpiry?: Date | null;
 
   @Column({ default: true })
   isActive!: boolean;
@@ -62,11 +62,11 @@ export class User {
   @Column({ nullable: true })
   hashedRefreshToken?: string;
 
-  @Column({ nullable: true })
-  passwordResetToken?: string;
+  @Column({ type: 'varchar', nullable: true })
+  passwordResetToken?: string | null;
 
-  @Column({ nullable: true })
-  passwordResetExpiry?: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  passwordResetExpiry?: Date | null;
 
   @Column({ nullable: true })
   lastLoginAt?: Date;

@@ -37,13 +37,36 @@ export class UsersService {
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    const user = await this.getById(id);
-    return await this.userRepository.save({ ...user, ...updateUserDto });
+  async update(id: string, payload: Partial<User>) {
+    await this.userRepository.update(id, payload);
+    return this.getById(id);
   }
 
   async remove(id: string) {
     const user = await this.getById(id);
     return await this.userRepository.remove(user);
+  }
+
+  async verifyEmail(email: string, token: string) {
+    const user = await this.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.verificationToken !== token) {
+      return false;
+    }
+
+    if (user.verificationTokenExpiry && user.verificationTokenExpiry < new Date()) {
+      return false;
+    }
+
+    await this.update(user.id, {
+      isEmailVerified: true,
+      verificationToken: null,
+      verificationTokenExpiry: null,
+    });
+
+    return true;
   }
 }
