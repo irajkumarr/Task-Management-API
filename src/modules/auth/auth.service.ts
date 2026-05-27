@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -16,6 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
 import { AuthProvider, User } from '../users/entities/user.entity';
 import { OAuth2Client } from 'google-auth-library';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @Injectable()
 export class AuthService {
@@ -140,6 +142,13 @@ export class AuthService {
       accessToken,
       refreshToken,
       user: refreshUser,
+    };
+  }
+
+  async logout(userId: string) {
+    await this.usersService.update(userId, { hashedRefreshToken: null });
+    return {
+      message: 'Logged out successfully',
     };
   }
 
