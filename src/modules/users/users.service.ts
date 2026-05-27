@@ -18,7 +18,27 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return await this.userRepository.findOne({ where: { email } });
+    return await this.userRepository.findOne({
+      where: { email },
+    });
+  }
+
+  async findByEmailWithPassword(email: string) {
+    return await this.userRepository.findOne({
+      where: { email },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        password: true,
+        phone: true,
+        provider: true,
+        role: true,
+        isActive: true,
+        isEmailVerified: true,
+        lastLoginAt: true,
+      },
+    });
   }
 
   async findAll() {
@@ -57,7 +77,10 @@ export class UsersService {
       return false;
     }
 
-    if (user.verificationTokenExpiry && user.verificationTokenExpiry < new Date()) {
+    if (
+      user.verificationTokenExpiry &&
+      user.verificationTokenExpiry < new Date()
+    ) {
       return false;
     }
 

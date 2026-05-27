@@ -9,10 +9,16 @@ import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import bcrypt from 'bcryptjs';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { LoginDto } from './dto/login.dto';
+
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
 
   async register(createUserDto: CreateUserDto) {
     const user = await this.usersService.findByEmail(createUserDto.email);
@@ -53,4 +59,72 @@ export class AuthService {
       message: 'Email successfully verified',
     };
   }
+
+  async login(loginDto: LoginDto) {
+    const user = await this.usersService.findByEmailWithPassword(
+      loginDto.email,
+    );
+    if (!user) {
+      throw new BadRequestException('Invalid email or password');
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password!,
+    );
+
+    if (!isPasswordValid) {
+      throw new BadRequestException('Invalid email or password');
+    }
+    if (!user.isActive) {
+      throw new BadRequestException('User is not active');
+    }
+
+    if (!user.isEmailVerified) {
+      throw new BadRequestException('User is not verified');
+    }
+
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    const { accessToken, refreshToken } = await this.generateTokens(
+      user.id,
+      payload,
+    );
+
+    const { password, ...result } = user;
+
+    return {
+      accessToken,
+      refreshToken,
+      user: result,
+    };
+  }
+
+  async generateTokens(id: string, payload: object) {
+    const accessToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: '15m',
+    });
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: '7d',
+    });
+
+    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+    await this.usersService.update(id, {
+      hashedRefreshToken: refreshTokenHash,
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  
 }
