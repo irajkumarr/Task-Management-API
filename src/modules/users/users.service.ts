@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { User } from './entities/user.entity';
+import { AuthProvider, User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -14,6 +14,17 @@ export class UsersService {
     const newUser = this.userRepository.create(createUserDto);
     await this.userRepository.save(newUser);
     return newUser;
+  }
+
+  async createGoogleUser(data: { email: string; fullName: string }) {
+    const user = this.userRepository.create({
+      fullName: data.fullName,
+      email: data.email,
+      isEmailVerified: true,
+      provider: AuthProvider.GOOGLE,
+    });
+
+    return await this.userRepository.save(user);
   }
 
   async findByEmail(email: string) {

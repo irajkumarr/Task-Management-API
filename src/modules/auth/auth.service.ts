@@ -14,14 +14,18 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LoginDto } from './dto/login.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '../users/entities/user.entity';
+import { AuthProvider, User } from '../users/entities/user.entity';
+import { OAuth2Client } from 'google-auth-library';
 
 @Injectable()
 export class AuthService {
+  private googleClient: OAuth2Client;
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    this.googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  }
 
   async register(createUserDto: CreateUserDto) {
     const user = await this.usersService.findByEmail(createUserDto.email);
@@ -106,6 +110,36 @@ export class AuthService {
         isEmailVerified: refreshUser.isEmailVerified,
         lastLoginAt: refreshUser.lastLoginAt,
       },
+    };
+  }
+
+  async googleLogin(idToken: string) {
+    const ticket = await this.googleClient.verifyIdToken({
+      idToken,
+      audience: undefined,
+    });
+    const payload = ticket.getPayload();
+    if (!payload) {
+      throw new UnauthorizedException('Invalid Google token payload');
+    }
+    const { email, email_verified, name } = payload;
+
+    if (!email || !email_verified) {
+      throw new UnauthorizedException('Google account not verified');
+    }
+    let user = await this.usersService.findByEmail(email);
+    if (!user) {
+      user = await this.usersService.createGoogleUser({
+        fullName: name || 'Google User',
+        email,
+      });
+    }
+    const { accessToken, refreshToken, refreshUser } =
+      await this.generateTokens(user);
+    return {
+      accessToken,
+      refreshToken,
+      user: refreshUser,
     };
   }
 
