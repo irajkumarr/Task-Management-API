@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Get, Body, Patch, Delete } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
@@ -35,8 +27,20 @@ export class UsersController {
   }
 
   @Patch()
-  update(@CurrentUser('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
+  async update(
+    @CurrentUser('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
+    const user = await this.usersService.update(id, updateUserDto);
+    return {
+      message: 'User updated successfully',
+      data: {
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+      },
+    };
   }
 
   @Delete()
@@ -44,7 +48,6 @@ export class UsersController {
     await this.usersService.remove(id);
     return {
       message: 'User deleted successfully',
-      data: undefined,
     };
   }
 }

@@ -1,11 +1,9 @@
 import {
   BadRequestException,
-  Body,
   ConflictException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
-  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -15,9 +13,8 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LoginDto } from './dto/login.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
-import { AuthProvider, User } from '../users/entities/user.entity';
+import { User } from '../users/entities/user.entity';
 import { OAuth2Client } from 'google-auth-library';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @Injectable()
 export class AuthService {
@@ -49,11 +46,15 @@ export class AuthService {
     console.log(
       `Verification token for ${createUserDto.email}: ${verificationToken}`,
     );
-    return await this.usersService.create({
+    const newUser = await this.usersService.create({
       ...createUserDto,
       verificationToken,
       verificationTokenExpiry,
     });
+    return {
+      message: 'User created successfully',
+      data: newUser,
+    };
   }
 
   async verifyEmail(verifyEmailDto: VerifyEmailDto) {
@@ -140,9 +141,12 @@ export class AuthService {
     const { accessToken, refreshToken, refreshUser } =
       await this.generateTokens(user);
     return {
-      accessToken,
-      refreshToken,
-      user: refreshUser,
+      message: 'Login successful',
+      data: {
+        accessToken,
+        refreshToken,
+        user: refreshUser,
+      },
     };
   }
 
@@ -179,8 +183,11 @@ export class AuthService {
     const { accessToken, refreshToken: newRefreshToken } =
       await this.generateTokens(user);
     return {
-      accessToken,
-      refreshToken: newRefreshToken,
+      message: 'Tokens refreshed successfully',
+      data: {
+        accessToken,
+        refreshToken: newRefreshToken,
+      },
     };
   }
 
