@@ -59,8 +59,8 @@ export class User {
   @Column({ default: true })
   isActive!: boolean;
 
-  @Column({ nullable: true })
-  hashedRefreshToken?: string;
+  @Column({ type: 'varchar', nullable: true })
+  hashedRefreshToken?: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   passwordResetToken?: string | null;

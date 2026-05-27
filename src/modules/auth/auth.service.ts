@@ -9,10 +9,12 @@ import {
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LoginDto } from './dto/login.dto';
-
+import { v4 as uuidv4 } from 'uuid';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -85,107 +87,104 @@ export class AuthService {
       throw new BadRequestException('User is not verified');
     }
 
-    const accessTokenPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      type: 'access',
-    };
-    const refreshTokenPayload = {
-      sub: user.id,
-      type: 'refresh',
-    };
+    const { accessToken, refreshToken, refreshUser } =
+      await this.generateTokens(user);
 
-    const { accessToken, refreshToken } = await this.generateTokens(
-      user.id,
-      accessTokenPayload,
-      refreshTokenPayload,
-    );
-
-    const { password, ...result } = user;
+    // const { password, ...result } = refreshUser;
 
     return {
       accessToken,
       refreshToken,
-      user: result,
+      user: {
+        id: refreshUser.id,
+        fullName: refreshUser.fullName,
+        email: refreshUser.email,
+        phone: refreshUser.phone,
+        provider: refreshUser.provider,
+        role: refreshUser.role,
+        isActive: refreshUser.isActive,
+        isEmailVerified: refreshUser.isEmailVerified,
+        lastLoginAt: refreshUser.lastLoginAt,
+      },
     };
   }
 
   async refreshTokens(id: string, refreshToken: string) {
-    // verify refresh token first
-    try {
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
-      });
-
-      if (payload.type !== 'refresh') {
-        throw new UnauthorizedException();
-      }
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
     const user = await this.usersService.findOne(id);
+
 
     if (!user || !user.hashedRefreshToken) {
       throw new UnauthorizedException();
     }
 
-    const isRefreshTokenMatch = await bcrypt.compare(
-      refreshToken,
-      user.hashedRefreshToken,
-    );
+    const tokenToCompare = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+
+    const isRefreshTokenMatch = tokenToCompare === user.hashedRefreshToken;
+
+  
 
     if (!isRefreshTokenMatch) {
+      // Possible token reuse attack — wipe the token family
+      await this.usersService.update(id, { hashedRefreshToken: null });
       throw new UnauthorizedException();
     }
 
-    const accessTokenPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      type: 'access',
-    };
-    const refreshTokenPayload = {
-      sub: user.id,
-      type: 'refresh',
-    };
+    // Invalidate old token before issuing new ones
+    await this.usersService.update(id, { hashedRefreshToken: null });
 
     const { accessToken, refreshToken: newRefreshToken } =
-      await this.generateTokens(
-        user.id,
-        accessTokenPayload,
-        refreshTokenPayload,
-      );
-
+      await this.generateTokens(user);
     return {
       accessToken,
       refreshToken: newRefreshToken,
     };
   }
 
-  async generateTokens(
-    id: string,
-    accessTokenPayload: object,
-    refreshTokenPayload: object,
-  ) {
-    const accessToken = await this.jwtService.signAsync(accessTokenPayload, {
-      secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: '15m',
-    });
-    const refreshToken = await this.jwtService.signAsync(refreshTokenPayload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: '7d',
-    });
+ 
 
-    const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+  async generateTokens(user: User) {
+    const accessToken = await this.jwtService.signAsync(
+      {
+        sub: user.id,
+        email: user.email,
+        role: user.role,
+        type: 'access',
+      },
+      {
+        secret: process.env.JWT_ACCESS_SECRET,
+        expiresIn: '15m',
+      },
+    );
 
-    await this.usersService.update(id, {
+    const refreshToken = await this.jwtService.signAsync(
+      {
+        sub: user.id,
+        type: 'refresh',
+        jti: uuidv4(),
+      },
+      {
+        secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: '7d',
+      },
+    );
+
+    const refreshTokenHash = crypto
+      .createHash('sha256')
+      .update(refreshToken)
+      .digest('hex');
+
+    const refreshUser = await this.usersService.update(user.id, {
       hashedRefreshToken: refreshTokenHash,
+      lastLoginAt: new Date(),
     });
 
     return {
       accessToken,
       refreshToken,
+      refreshUser,
     };
   }
 }

@@ -1,10 +1,22 @@
-import { Body, Controller, HttpStatus, Post, HttpCode } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpStatus,
+  Post,
+  HttpCode,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 import { AuthService } from './auth.service';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RefreshJwtGuard } from 'src/common/guards/refresh-token.guard';
 
+import { Public } from 'src/common/decorators/public.decorator';
+
+@Public()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -26,11 +38,12 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
+  @UseGuards(RefreshJwtGuard)
   @Post('refresh-tokens')
   @HttpCode(HttpStatus.OK)
-  refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
+  refreshTokens(@Req() req, @Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshTokens(
-      refreshTokenDto.id,
+      req.user.id,
       refreshTokenDto.refreshToken,
     );
   }
