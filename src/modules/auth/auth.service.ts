@@ -4,6 +4,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { CreateUserDto } from '../users/dto/create-user.dto';
@@ -84,15 +85,21 @@ export class AuthService {
       throw new BadRequestException('User is not verified');
     }
 
-    const payload = {
+    const accessTokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      type: 'access',
+    };
+    const refreshTokenPayload = {
+      sub: user.id,
+      type: 'refresh',
     };
 
     const { accessToken, refreshToken } = await this.generateTokens(
       user.id,
-      payload,
+      accessTokenPayload,
+      refreshTokenPayload,
     );
 
     const { password, ...result } = user;
@@ -104,12 +111,68 @@ export class AuthService {
     };
   }
 
-  async generateTokens(id: string, payload: object) {
-    const accessToken = await this.jwtService.signAsync(payload, {
+  async refreshTokens(id: string, refreshToken: string) {
+    // verify refresh token first
+    try {
+      const payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+
+      if (payload.type !== 'refresh') {
+        throw new UnauthorizedException();
+      }
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const user = await this.usersService.findOne(id);
+
+    if (!user || !user.hashedRefreshToken) {
+      throw new UnauthorizedException();
+    }
+
+    const isRefreshTokenMatch = await bcrypt.compare(
+      refreshToken,
+      user.hashedRefreshToken,
+    );
+
+    if (!isRefreshTokenMatch) {
+      throw new UnauthorizedException();
+    }
+
+    const accessTokenPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      type: 'access',
+    };
+    const refreshTokenPayload = {
+      sub: user.id,
+      type: 'refresh',
+    };
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.generateTokens(
+        user.id,
+        accessTokenPayload,
+        refreshTokenPayload,
+      );
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
+
+  async generateTokens(
+    id: string,
+    accessTokenPayload: object,
+    refreshTokenPayload: object,
+  ) {
+    const accessToken = await this.jwtService.signAsync(accessTokenPayload, {
       secret: process.env.JWT_ACCESS_SECRET,
       expiresIn: '15m',
     });
-    const refreshToken = await this.jwtService.signAsync(payload, {
+    const refreshToken = await this.jwtService.signAsync(refreshTokenPayload, {
       secret: process.env.JWT_REFRESH_SECRET,
       expiresIn: '7d',
     });
@@ -125,6 +188,4 @@ export class AuthService {
       refreshToken,
     };
   }
-
-  
 }
