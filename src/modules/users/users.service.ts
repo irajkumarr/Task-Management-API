@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { AuthProvider, User } from './entities/user.entity';
 import { Repository } from 'typeorm';
@@ -11,9 +16,18 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const newUser = this.userRepository.create(createUserDto);
-    await this.userRepository.save(newUser);
-    return newUser;
+    try {
+      const newUser = this.userRepository.create(createUserDto);
+      await this.userRepository.save(newUser);
+      return newUser;
+    } catch (error: any) {
+      // Postgres duplicate key error
+      if (error.code === '23505') {
+        throw new ConflictException('Email already exists');
+      }
+
+      throw new InternalServerErrorException('Something went wrong');
+    }
   }
 
   async createGoogleUser(data: { email: string; fullName: string }) {
@@ -74,7 +88,7 @@ export class UsersService {
 
   async remove(id: string) {
     const user = await this.getById(id);
-    return await this.userRepository.remove(user);
+    return await this.userRepository.softRemove(user);
   }
 
   async verifyEmail(email: string, token: string) {

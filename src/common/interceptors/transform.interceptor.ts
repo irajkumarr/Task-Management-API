@@ -14,9 +14,9 @@ export class TransformInterceptor implements NestInterceptor {
         return {
           success: true,
           statusCode: context.switchToHttp().getResponse().statusCode,
-          message: data?.message || 'Request successful',
-          data: data?.data ?? data,
-          meta: data?.meta || undefined,
+          message: data?.message ?? 'Request successful',
+          data: data?.data ?? null,
+          meta: data?.meta ?? null,
         };
       }),
     );
