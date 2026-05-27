@@ -1,0 +1,20 @@
+install required packages
+
+make user entities
+
+make user dtos
+
+user service
+
+auth dtos 
+
+auth service
+
+auth controller
+
+test in postman making perfect folder structure
+
+
+
+
+
