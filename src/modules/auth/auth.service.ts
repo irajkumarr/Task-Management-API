@@ -112,7 +112,6 @@ export class AuthService {
   async refreshTokens(id: string, refreshToken: string) {
     const user = await this.usersService.findOne(id);
 
-
     if (!user || !user.hashedRefreshToken) {
       throw new UnauthorizedException();
     }
@@ -123,8 +122,6 @@ export class AuthService {
       .digest('hex');
 
     const isRefreshTokenMatch = tokenToCompare === user.hashedRefreshToken;
-
-  
 
     if (!isRefreshTokenMatch) {
       // Possible token reuse attack — wipe the token family
@@ -143,7 +140,68 @@ export class AuthService {
     };
   }
 
- 
+  async forgotPassword(email: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const passwordResetToken = Math.floor(
+      100000 + Math.random() * 900000,
+    ).toString();
+    const passwordResetExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+    await this.usersService.update(user.id, {
+      passwordResetToken,
+      passwordResetExpiry,
+    });
+    console.log(
+      `Password reset token for ${user.email}: ${passwordResetToken}`,
+    );
+    return {
+      message: 'Password reset token sent to your email',
+    };
+  }
+
+  async verifyResetToken(email: string, token: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.passwordResetToken !== token) {
+      throw new BadRequestException('Invalid token');
+    }
+    if (user.passwordResetExpiry! < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    return {
+      message: 'Token verified',
+    };
+  }
+
+  async resetPassword(email: string, token: string, newPassword: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.passwordResetToken !== token) {
+      throw new BadRequestException('Invalid token');
+    }
+    if (user.passwordResetExpiry! < new Date()) {
+      throw new BadRequestException('Token expired');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    await this.usersService.update(user.id, {
+      password: hashedPassword,
+      passwordResetToken: null,
+      passwordResetExpiry: null,
+    });
+    return {
+      message: 'Password reset successfully',
+    };
+  }
 
   async generateTokens(user: User) {
     const accessToken = await this.jwtService.signAsync(

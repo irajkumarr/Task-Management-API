@@ -15,6 +15,9 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshJwtGuard } from 'src/common/guards/refresh-token.guard';
 
 import { Public } from 'src/common/decorators/public.decorator';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { VerifyResetTokenDto } from './dto/verify-token.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Public()
 @Controller('auth')
@@ -45,6 +48,31 @@ export class AuthController {
     return this.authService.refreshTokens(
       req.user.id,
       refreshTokenDto.refreshToken,
+    );
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @Post('verify-reset-token')
+  @HttpCode(HttpStatus.OK)
+  verifyResetToken(@Body() verifyResetTokenDto: VerifyResetTokenDto) {
+    return this.authService.verifyResetToken(
+      verifyResetTokenDto.email,
+      verifyResetTokenDto.token,
+    );
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(
+      resetPasswordDto.email,
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
     );
   }
 }
