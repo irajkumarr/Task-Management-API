@@ -96,21 +96,22 @@ export class AuthService {
     const { accessToken, refreshToken, refreshUser } =
       await this.generateTokens(user);
 
-    // const { password, ...result } = refreshUser;
-
     return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: refreshUser.id,
-        fullName: refreshUser.fullName,
-        email: refreshUser.email,
-        phone: refreshUser.phone,
-        provider: refreshUser.provider,
-        role: refreshUser.role,
-        isActive: refreshUser.isActive,
-        isEmailVerified: refreshUser.isEmailVerified,
-        lastLoginAt: refreshUser.lastLoginAt,
+      message: 'Login successful',
+      data: {
+        accessToken,
+        refreshToken,
+        user: {
+          id: refreshUser.id,
+          fullName: refreshUser.fullName,
+          email: refreshUser.email,
+          phone: refreshUser.phone,
+          provider: refreshUser.provider,
+          role: refreshUser.role,
+          isActive: refreshUser.isActive,
+          isEmailVerified: refreshUser.isEmailVerified,
+          lastLoginAt: refreshUser.lastLoginAt,
+        },
       },
     };
   }
