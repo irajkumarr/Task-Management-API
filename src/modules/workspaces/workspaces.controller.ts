@@ -6,11 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { WorkspacesService } from './workspaces.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { WorkspaceMemberGuard } from 'src/common/guards/workspace-member.guard';
 
 @Controller('workspaces')
 export class WorkspacesController {
@@ -41,6 +43,7 @@ export class WorkspacesController {
   }
 
   @Get(':id')
+  @UseGuards(WorkspaceMemberGuard)
   async findOne(@CurrentUser('id') userId: string, @Param('id') id: string) {
     const workspace = await this.workspacesService.findOne(userId, id);
     return {
