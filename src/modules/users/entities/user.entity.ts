@@ -76,7 +76,7 @@ export class User {
   lastLoginAt?: Date;
 
   @OneToMany(() => Workspace, (workspace) => workspace.owner)
-  workspaces!: Workspace[];
+  ownedWorkspaces!: Workspace[];
 
   @OneToMany(() => WorkspaceMember, (workspaceMember) => workspaceMember.user)
   workspaceMemberships!: WorkspaceMember[];

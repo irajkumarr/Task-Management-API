@@ -4,6 +4,8 @@ import { UsersModule } from './modules/users/users.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { WorkspacesModule } from './modules/workspaces/workspaces.module';
+import { WorkspaceMembersModule } from './modules/workspace-members/workspace-members.module';
 
 @Module({
   imports: [
@@ -20,13 +22,15 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
-        autoLoadEntities: true,
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Only for development!
       }),
     }),
 
     AuthModule,
     UsersModule,
+    WorkspacesModule,
+    WorkspaceMembersModule,
   ],
   controllers: [],
   providers: [
