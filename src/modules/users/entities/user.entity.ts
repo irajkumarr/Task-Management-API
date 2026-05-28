@@ -1,8 +1,11 @@
+import { WorkspaceMember } from 'src/modules/workspace-members/entities/workspace-member.entity';
+import { Workspace } from 'src/modules/workspaces/entities/workspace.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -71,6 +74,12 @@ export class User {
 
   @Column({ nullable: true })
   lastLoginAt?: Date;
+
+  @OneToMany(() => Workspace, (workspace) => workspace.owner)
+  workspaces!: Workspace[];
+
+  @OneToMany(() => WorkspaceMember, (workspaceMember) => workspaceMember.user)
+  workspaceMemberships!: WorkspaceMember[];
 
   @CreateDateColumn()
   createdAt!: Date;
