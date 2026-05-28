@@ -27,7 +27,9 @@ export class WorkspacesService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     try {
-      const slug = slugify(createWorkspaceDto.name);
+      // const slug = slugify(createWorkspaceDto.name);
+      const slug = await this.generateUniqueSlug(createWorkspaceDto.name);
+
       // Create workspace
       const workspace = queryRunner.manager.create(Workspace, {
         ...createWorkspaceDto,
@@ -144,5 +146,23 @@ export class WorkspacesService {
 
   remove(id: number) {
     return `This action removes a #${id} workspace`;
+  }
+
+  private async generateUniqueSlug(name: string): Promise<string> {
+    const baseSlug = slugify(name);
+    // "acme-team"
+    let slug = baseSlug;
+    let counter = 1;
+    // keep trying until we find a slug that doesn't exist
+    while (true) {
+      const existing = await this.workspaceRepository.findOne({
+        where: { slug },
+      });
+      if (!existing) break;
+      // slug is free, use it
+      slug = `${baseSlug}-${counter}`; // try "acme-team-1", "acme-team-2"…
+      counter++;
+    }
+    return slug;
   }
 }
