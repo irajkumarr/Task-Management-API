@@ -1,21 +1,21 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
   Patch,
   Param,
   Delete,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { WorkspaceMembersService } from './workspace-members.service';
 import { CreateWorkspaceMemberDto } from './dto/create-workspace-member.dto';
-import { UpdateWorkspaceMemberDto } from './dto/update-workspace-member.dto';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { WorkspaceMemberGuard } from 'src/common/guards/workspace-member.guard';
 import { WorkspaceRolesGuard } from 'src/common/guards/workspace-roles.guard';
 import { WorkspaceRoles } from 'src/common/decorators/workspace-roles.decorator';
 import { WorkspaceRole } from './entities/workspace-member.entity';
+import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 
 @Controller('workspace-members')
 export class WorkspaceMembersController {
@@ -46,26 +46,44 @@ export class WorkspaceMembersController {
     };
   }
 
-  @Get()
-  findAll() {
-    return this.workspaceMembersService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.workspaceMembersService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateWorkspaceMemberDto: UpdateWorkspaceMemberDto,
+  @Patch(':id/members/:userId/role')
+  @UseGuards(WorkspaceMemberGuard, WorkspaceRolesGuard)
+  @WorkspaceRoles(WorkspaceRole.ADMIN, WorkspaceRole.OWNER)
+  async updateMemberRole(
+    @Req() req,
+    @Param('id') workspaceId: string,
+    @Param('userId') targetUserId: string,
+    @Body() updateMemberRoleDto: UpdateMemberRoleDto,
   ) {
-    return this.workspaceMembersService.update(+id, updateWorkspaceMemberDto);
+    const member = await this.workspaceMembersService.updateMemberRole(
+      workspaceId,
+      targetUserId,
+      req.workspaceMember,
+      updateMemberRoleDto,
+    );
+
+    return {
+      message: 'Member role updated successfully',
+      data: member,
+    };
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.workspaceMembersService.remove(+id);
+  @Delete(':id/members/:userId')
+  @UseGuards(WorkspaceMemberGuard, WorkspaceRolesGuard)
+  @WorkspaceRoles(WorkspaceRole.ADMIN, WorkspaceRole.OWNER)
+  async removeMember(
+    @Req() req,
+    @Param('id') workspaceId: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    await this.workspaceMembersService.removeMember(
+      workspaceId,
+      targetUserId,
+      req.workspaceMember,
+    );
+    return {
+      message: 'Member removed successfully',
+    };
   }
+
 }
