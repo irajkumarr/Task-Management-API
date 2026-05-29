@@ -9,6 +9,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 
 export const ProjectStatus = {
@@ -21,6 +22,7 @@ export const ProjectStatus = {
 export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus];
 
 @Entity('projects')
+@Unique(['workspaceId', 'slug'])
 export class Project {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
