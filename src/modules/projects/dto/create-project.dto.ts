@@ -1,4 +1,9 @@
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateProjectDto {
   @IsString()
@@ -8,4 +13,12 @@ export class CreateProjectDto {
   @IsString()
   @IsOptional()
   description!: string;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
 }
