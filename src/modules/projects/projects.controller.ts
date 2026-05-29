@@ -26,17 +26,29 @@ export class ProjectsController {
     @CurrentUser('id') userId: string,
     @Body() createProjectDto: CreateProjectDto,
   ) {
-    return this.projectsService.create(workspaceId, userId, createProjectDto);
+    const project = await this.projectsService.create(
+      workspaceId,
+      userId,
+      createProjectDto,
+    );
+    return {
+      message: 'Project created successfully',
+      data: project,
+    };
   }
 
   @Get()
-  findAll() {
-    return this.projectsService.findAll();
+  async findAll(@Param('workspaceId') workspaceId: string) {
+    const projects = await this.projectsService.findAll(workspaceId);
+    return {
+      message: 'Projects fetched successfully',
+      data: projects,
+    };
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.projectsService.findOne(+id);
+    return this.projectsService.findOne(id);
   }
 
   @Patch(':id')

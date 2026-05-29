@@ -33,11 +33,14 @@ export class ProjectsService {
     return await this.projectsRepository.save(project);
   }
 
-  findAll() {
-    return `This action returns all projects`;
+ async findAll(workspaceId:string) {
+    const projects=await this.projectsRepository.find({
+      where:{workspaceId}
+    })
+    return projects;
   }
 
-  findOne(id: number) {
+  findOne(id: string) {
     return `This action returns a #${id} project`;
   }
 
