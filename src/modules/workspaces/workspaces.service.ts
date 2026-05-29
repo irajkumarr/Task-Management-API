@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
@@ -140,8 +141,13 @@ export class WorkspacesService {
       .getOne();
   }
 
-  update(id: number, updateWorkspaceDto: UpdateWorkspaceDto) {
-    return `This action updates a #${id} workspace`;
+  async update(id: string, updateWorkspaceDto: UpdateWorkspaceDto) {
+    const workspace = await this.workspaceRepository.findOneBy({ id });
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    return await this.workspaceRepository.update(id, updateWorkspaceDto);
   }
 
   remove(id: number) {

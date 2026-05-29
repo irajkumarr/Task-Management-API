@@ -13,6 +13,9 @@ import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { WorkspaceMemberGuard } from 'src/common/guards/workspace-member.guard';
+import { WorkspaceRolesGuard } from 'src/common/guards/workspace-roles.guard';
+import { WorkspaceRoles } from 'src/common/decorators/workspace-roles.decorator';
+import { WorkspaceRole } from '../workspace-members/entities/workspace-member.entity';
 
 @Controller('workspaces')
 export class WorkspacesController {
@@ -53,11 +56,13 @@ export class WorkspacesController {
   }
 
   @Patch(':id')
+  @UseGuards(WorkspaceMemberGuard, WorkspaceRolesGuard)
+  @WorkspaceRoles(WorkspaceRole.ADMIN, WorkspaceRole.OWNER)
   update(
     @Param('id') id: string,
     @Body() updateWorkspaceDto: UpdateWorkspaceDto,
   ) {
-    return this.workspacesService.update(+id, updateWorkspaceDto);
+    return this.workspacesService.update(id, updateWorkspaceDto);
   }
 
   @Delete(':id')
