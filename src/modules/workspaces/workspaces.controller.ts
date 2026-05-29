@@ -58,15 +58,24 @@ export class WorkspacesController {
   @Patch(':id')
   @UseGuards(WorkspaceMemberGuard, WorkspaceRolesGuard)
   @WorkspaceRoles(WorkspaceRole.ADMIN, WorkspaceRole.OWNER)
-  update(
+  async update(
     @Param('id') id: string,
     @Body() updateWorkspaceDto: UpdateWorkspaceDto,
   ) {
-    return this.workspacesService.update(id, updateWorkspaceDto);
+    const updatedWorkspace = await this.workspacesService.update(
+      id,
+      updateWorkspaceDto,
+    );
+    return {
+      message: 'Workspace updated successfully',
+      data: updatedWorkspace,
+    };
   }
 
   @Delete(':id')
+  @UseGuards(WorkspaceMemberGuard, WorkspaceRolesGuard)
+  @WorkspaceRoles(WorkspaceRole.OWNER)
   remove(@Param('id') id: string) {
-    return this.workspacesService.remove(+id);
+    return this.workspacesService.remove(id);
   }
 }

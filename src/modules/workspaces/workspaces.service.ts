@@ -147,16 +147,24 @@ export class WorkspacesService {
       throw new NotFoundException('Workspace not found');
     }
 
-    return await this.workspaceRepository.update(id, updateWorkspaceDto);
+    await this.workspaceRepository.update(id, updateWorkspaceDto);
+    return await this.workspaceRepository.findOneBy({ id });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} workspace`;
+  async remove(id: string) {
+    const workspace = await this.workspaceRepository.findOneBy({ id });
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+    await this.workspaceRepository.delete(id);
+    return {
+      message: 'Workspace deleted successfully',
+    };
   }
 
   private async generateUniqueSlug(name: string): Promise<string> {
     const baseSlug = slugify(name);
-    // "acme-team"
+
     let slug = baseSlug;
     let counter = 1;
     // keep trying until we find a slug that doesn't exist
