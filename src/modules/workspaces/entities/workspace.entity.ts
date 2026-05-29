@@ -1,3 +1,4 @@
+import { Project } from 'src/modules/projects/entities/project.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { WorkspaceMember } from 'src/modules/workspace-members/entities/workspace-member.entity';
 import {
@@ -49,4 +50,7 @@ export class Workspace {
 
   @DeleteDateColumn()
   deletedAt?: Date;
+
+  @OneToMany(() => Project, (project) => project.workspace)
+  projects!: Project[];
 }
