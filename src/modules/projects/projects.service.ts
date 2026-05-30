@@ -3,7 +3,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Project } from './entities/project.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { slugify } from 'src/common/utils/slug.util';
 
 @Injectable()
@@ -35,7 +35,7 @@ export class ProjectsService {
 
   async findAll(workspaceId: string) {
     const projects = await this.projectsRepository.find({
-      where: { workspaceId },
+      where: { workspaceId, status: Not('archived') },
     });
     return projects;
   }
@@ -88,8 +88,6 @@ export class ProjectsService {
     await this.projectsRepository.softRemove(project);
     return { message: 'Project deleted successfully' };
   }
-
-  
 
   private async generateUniqueSlug(
     workspaceId: string,
