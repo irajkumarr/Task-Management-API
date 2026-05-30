@@ -66,8 +66,15 @@ export class ProjectsService {
     return `This action updates a #${id} project`;
   }
 
-  remove(id: number) {
-   
+  async remove(workspaceId: string, id: string) {
+    const project = await this.projectsRepository.findOne({
+      where: { id, workspaceId },
+    });
+    if (!project) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
+    await this.projectsRepository.softRemove(project);
+    return { message: 'Project deleted successfully' };
   }
 
   private async generateUniqueSlug(

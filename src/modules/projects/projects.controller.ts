@@ -64,7 +64,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.projectsService.remove(+id);
+  remove(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
+    return this.projectsService.remove(workspaceId, id);
   }
 }
