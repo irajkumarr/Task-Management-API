@@ -62,8 +62,20 @@ export class ProjectsService {
     return project;
   }
 
-  update(id: number, updateProjectDto: UpdateProjectDto) {
-    return `This action updates a #${id} project`;
+  async update(
+    workspaceId: string,
+    id: string,
+    updateProjectDto: UpdateProjectDto,
+  ) {
+    const project = await this.projectsRepository.findOne({
+      where: { id, workspaceId },
+    });
+    if (!project) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
+
+    await this.projectsRepository.update(id, updateProjectDto);
+    return await this.findOne(workspaceId, id);
   }
 
   async remove(workspaceId: string, id: string) {
@@ -77,6 +89,8 @@ export class ProjectsService {
     return { message: 'Project deleted successfully' };
   }
 
+  
+
   private async generateUniqueSlug(
     workspaceId: string,
     name: string,
@@ -89,6 +103,7 @@ export class ProjectsService {
     while (true) {
       const existing = await this.projectsRepository.findOne({
         where: { workspaceId, slug },
+        withDeleted: true,
       });
       if (!existing) break;
       // slug is free, use it

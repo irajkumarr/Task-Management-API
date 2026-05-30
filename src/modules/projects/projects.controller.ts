@@ -59,8 +59,20 @@ export class ProjectsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
-    return this.projectsService.update(+id, updateProjectDto);
+  async update(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @Body() updateProjectDto: UpdateProjectDto,
+  ) {
+    const updatedProject = await this.projectsService.update(
+      workspaceId,
+      id,
+      updateProjectDto,
+    );
+    return {
+      message: 'Project updated successfully',
+      data: updatedProject,
+    };
   }
 
   @Delete(':id')
