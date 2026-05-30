@@ -47,8 +47,15 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.projectsService.findOne(id);
+  async findOne(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+  ) {
+    const project = await this.projectsService.findOne(workspaceId, id);
+    return {
+      message: 'Project fetched successfully',
+      data: project,
+    };
   }
 
   @Patch(':id')

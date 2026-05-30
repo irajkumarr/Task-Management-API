@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { WorkspaceMembersModule } from './modules/workspace-members/workspace-members.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { WorkspaceMembersModule } from './modules/workspace-members/workspace-me
     UsersModule,
     WorkspacesModule,
     WorkspaceMembersModule,
+    ProjectsModule,
   ],
   controllers: [],
   providers: [

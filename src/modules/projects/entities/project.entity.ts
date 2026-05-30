@@ -33,7 +33,7 @@ export class Project {
   @Column()
   slug!: string;
 
-  @Column()
+  @Column({ nullable: true })
   description?: string;
 
   @Column({ type: 'enum', enum: ProjectStatus, default: ProjectStatus.ACTIVE })
@@ -55,10 +55,10 @@ export class Project {
   @JoinColumn({ name: 'createdById' })
   user!: User;
 
-  @Column()
+  @Column({ nullable: true })
   startDate?: Date;
 
-  @Column()
+  @Column({ nullable: true })
   endDate?: Date;
 
   @CreateDateColumn()

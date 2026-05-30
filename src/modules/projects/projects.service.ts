@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { Project } from './entities/project.entity';
@@ -33,15 +33,33 @@ export class ProjectsService {
     return await this.projectsRepository.save(project);
   }
 
- async findAll(workspaceId:string) {
-    const projects=await this.projectsRepository.find({
-      where:{workspaceId}
-    })
+  async findAll(workspaceId: string) {
+    const projects = await this.projectsRepository.find({
+      where: { workspaceId },
+    });
     return projects;
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} project`;
+  async findOne(workspaceId: string, id: string) {
+    const project = await this.projectsRepository.findOne({
+      where: { workspaceId, id },
+      relations: {
+        user: true,
+        workspace: true,
+      },
+      select: {
+        user: {
+          id: true,
+          fullName: true,
+          email: true,
+        },
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException(`Project with id ${id} not found`);
+    }
+    return project;
   }
 
   update(id: number, updateProjectDto: UpdateProjectDto) {
@@ -49,7 +67,7 @@ export class ProjectsService {
   }
 
   remove(id: number) {
-    return `This action removes a #${id} project`;
+   
   }
 
   private async generateUniqueSlug(
