@@ -1,3 +1,4 @@
+import { Task } from 'src/modules/tasks/entities/task.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Workspace } from 'src/modules/workspaces/entities/workspace.entity';
 import {
@@ -10,6 +11,7 @@ import {
   ManyToOne,
   JoinColumn,
   Unique,
+  OneToMany,
 } from 'typeorm';
 
 export const ProjectStatus = {
@@ -69,4 +71,7 @@ export class Project {
 
   @DeleteDateColumn()
   deletedAt!: Date;
+
+  @OneToMany(() => Project, (project) => project.tasks)
+  tasks!: Task[];
 }
