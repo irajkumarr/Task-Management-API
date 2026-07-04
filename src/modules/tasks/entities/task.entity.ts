@@ -1,4 +1,5 @@
 import { Project } from 'src/modules/projects/entities/project.entity';
+import { User } from 'src/modules/users/entities/user.entity';
 import {
   Entity,
   Column,
@@ -7,6 +8,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 export const TaskStatus = {
@@ -52,9 +54,29 @@ export class Task {
   @Column()
   projectId!: string;
 
-  @ManyToOne(() => Project, (project) => project.tasks)
+  @ManyToOne(() => Project, (project) => project.tasks, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'projectId' })
   project!: Project;
 
+  @Column({ nullable: true })
+  assigneeId?: string;
+
+  @ManyToOne(() => User, (user) => user.assignedTasks, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'assigneeId' })
+  assigneeUser!: User;
+
+  @Column()
+  createdById!: string;
+
+  @ManyToOne(() => User, (user) => user.tasks, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'createdById' })
+  createdByUser!: User;
 
   @CreateDateColumn()
   createdAt!: Date;

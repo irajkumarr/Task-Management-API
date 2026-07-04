@@ -1,3 +1,4 @@
+import { Task } from 'src/modules/tasks/entities/task.entity';
 import { WorkspaceMember } from 'src/modules/workspace-members/entities/workspace-member.entity';
 import { Workspace } from 'src/modules/workspaces/entities/workspace.entity';
 import {
@@ -80,6 +81,12 @@ export class User {
 
   @OneToMany(() => WorkspaceMember, (workspaceMember) => workspaceMember.user)
   workspaceMemberships!: WorkspaceMember[];
+
+  @OneToMany(() => Task, (task) => task.assigneeUser)
+  assignedTasks!: Task[];
+
+  @OneToMany(() => Task, (task) => task.createdByUser)
+  tasks!: Task[];
 
   @CreateDateColumn()
   createdAt!: Date;
