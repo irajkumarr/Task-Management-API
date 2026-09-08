@@ -31,6 +31,14 @@ export class TaskCommentsService {
     const queryBuilder = this.taskCommentRepository
       .createQueryBuilder('taskComment')
       .leftJoinAndSelect('taskComment.author', 'author')
+      .select([
+        'taskComment.id',
+        'taskComment.content',
+        'taskComment.taskId',
+        'taskComment.createdAt',
+        'author.id',
+        'author.fullName',
+      ])
       .where('taskComment.taskId = :taskId', { taskId });
 
     const page = Number(filterCommentDto.page) || 1;
@@ -67,6 +75,7 @@ export class TaskCommentsService {
       },
       relations: {
         author: true,
+        task:true
       },
       select: {
         id: true,

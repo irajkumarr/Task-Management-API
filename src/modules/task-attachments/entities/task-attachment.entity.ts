@@ -17,7 +17,8 @@ export const StorageProvider = {
   S3: 's3',
 } as const;
 
-export type StorageProvider = (typeof StorageProvider)[keyof typeof StorageProvider];
+export type StorageProvider =
+  (typeof StorageProvider)[keyof typeof StorageProvider];
 
 @Entity('task_attachments')
 export class TaskAttachment {
@@ -42,7 +43,7 @@ export class TaskAttachment {
   @Column({
     type: 'enum',
     enum: StorageProvider,
-    default: StorageProvider.LOCAL,
+    default: StorageProvider.CLOUDINARY,
   })
   provider!: StorageProvider;
 

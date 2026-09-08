@@ -16,7 +16,6 @@ export class TaskAttachmentsService {
     private readonly taskAttachmentRepository: Repository<TaskAttachment>,
     @Inject('STORAGE_SERVICE')
     private readonly storageService: storageInterface.IStorageService,
-    // private readonly s3StorageService: S3StorageService,
   ) {}
 
   async uploadAttachments(
@@ -29,13 +28,13 @@ export class TaskAttachmentsService {
         'Please provide at least one file to upload',
       );
     }
+
     // Upload files concurrently to Cloudinary
     const uploadPromises = files.map(async (file) => {
       const uploadResult = await this.storageService.uploadFile(
         file,
         'tasks_attachments',
       );
-
       //  Map file data and Cloudinary payload directly to your TaskAttachment schema
       return this.taskAttachmentRepository.create({
         taskId,
@@ -48,7 +47,6 @@ export class TaskAttachmentsService {
         publicId: uploadResult.publicId,
       });
     });
-
     const attachmentsToSave = await Promise.all(uploadPromises);
 
     //  Save all attachment rows to the database in a single batch operation
