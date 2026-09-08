@@ -7,6 +7,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { WorkspacesModule } from './modules/workspaces/workspaces.module';
 import { WorkspaceMembersModule } from './modules/workspace-members/workspace-members.module';
 import { ProjectsModule } from './modules/projects/projects.module';
+import { TasksModule } from './modules/tasks/tasks.module';
 
 @Module({
   imports: [
@@ -18,11 +19,12 @@ import { ProjectsModule } from './modules/projects/projects.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: Number(configService.get<string>('DB_PORT')),
-        username: configService.get<string>('DB_USERNAME'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
+        // host: configService.get<string>('DB_HOST'),
+        // port: Number(configService.get<string>('DB_PORT')),
+        // username: configService.get<string>('DB_USERNAME'),
+        // password: configService.get<string>('DB_PASSWORD'),
+        // database: configService.get<string>('DB_PASSWORD'),
+        url: configService.get<string>('DATABASE_URL'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Only for development!
       }),
@@ -33,6 +35,7 @@ import { ProjectsModule } from './modules/projects/projects.module';
     WorkspacesModule,
     WorkspaceMembersModule,
     ProjectsModule,
+    TasksModule,
   ],
   controllers: [],
   providers: [
