@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { TaskAttachment } from './entities/task-attachment.entity';
+import {
+  StorageProvider,
+  TaskAttachment,
+} from './entities/task-attachment.entity';
 import { Repository } from 'typeorm';
 import * as storageInterface from 'src/common/services/storage/storage.interface';
 
@@ -45,6 +48,10 @@ export class TaskAttachmentsService {
         size: uploadResult.size,
         fileUrl: uploadResult.fileUrl,
         publicId: uploadResult.publicId,
+        provider:
+          process.env.STORAGE_PROVIDER === 's3'
+            ? StorageProvider.S3
+            : StorageProvider.CLOUDINARY,
       });
     });
     const attachmentsToSave = await Promise.all(uploadPromises);
