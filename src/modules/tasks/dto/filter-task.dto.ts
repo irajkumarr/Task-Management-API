@@ -6,6 +6,7 @@ import {
   IsString,
 } from 'class-validator';
 import { TaskPriority, TaskStatus } from '../entities/task.entity';
+import { Type } from 'class-transformer';
 
 export class FilterTaskDto {
   @IsEnum(TaskStatus)
@@ -28,13 +29,15 @@ export class FilterTaskDto {
   @IsOptional()
   dueDate?: string;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   page?: number;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
-  limit?: number = 10;
+  limit?: number;
 
   @IsString()
   @IsOptional()

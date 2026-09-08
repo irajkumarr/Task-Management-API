@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -52,6 +53,10 @@ export class WorkspaceMembersService {
       userId: user.id,
       role: inviteMemberDto.role ?? WorkspaceRole.MEMBER,
     });
+
+    if (!workspaceMember) {
+      throw new ConflictException('User already in workspace');
+    }
 
     return workspaceMember;
   }
@@ -138,6 +143,4 @@ export class WorkspaceMembersService {
 
     return await this.workspaceMemberRepository.remove(targetMember);
   }
-
-
 }

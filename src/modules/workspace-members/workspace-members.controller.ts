@@ -16,7 +16,10 @@ import { WorkspaceRolesGuard } from 'src/common/guards/workspace-roles.guard';
 import { WorkspaceRoles } from 'src/common/decorators/workspace-roles.decorator';
 import { WorkspaceRole } from './entities/workspace-member.entity';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Workspace Members')
+@ApiBearerAuth()
 @Controller('workspace-members')
 export class WorkspaceMembersController {
   constructor(

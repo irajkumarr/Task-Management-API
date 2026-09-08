@@ -7,13 +7,14 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from 'src/modules/tasks/entities/task.entity';
+import { WorkspaceRole } from 'src/modules/workspace-members/entities/workspace-member.entity';
 import { Repository } from 'typeorm';
 
 @Injectable()
 export class TaskOwnershipGuard implements CanActivate {
   constructor(
     @InjectRepository(Task) private readonly taskRepository: Repository<Task>,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
@@ -22,7 +23,9 @@ export class TaskOwnershipGuard implements CanActivate {
     const taskId = req.params.id;
 
     // ADMINs and OWNERs can edit any task — skip ownership check
-    if (['ADMIN', 'OWNER'].includes(memberRole)) return true;
+
+    if ([WorkspaceRole.ADMIN, WorkspaceRole.OWNER].includes(memberRole)) return true;
+
 
     // For MEMBER and VIEWER, check task ownership
     const task = await this.taskRepository.findOne({

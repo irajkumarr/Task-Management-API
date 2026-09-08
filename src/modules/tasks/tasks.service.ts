@@ -74,8 +74,10 @@ export class TasksService {
     return await this.taskRepository.save(task);
   }
 
-  async findAll(filterTaskDto: FilterTaskDto) {
-    const queryBuilder = this.taskRepository.createQueryBuilder('task');
+  async findAll(projectId: string, filterTaskDto: FilterTaskDto) {
+    const queryBuilder = this.taskRepository
+      .createQueryBuilder('task')
+      .where('task.projectId = :projectId', { projectId });
     if (filterTaskDto.status) {
       queryBuilder.andWhere('task.status = :status', {
         status: filterTaskDto.status,
@@ -91,8 +93,9 @@ export class TasksService {
         assigneeId: filterTaskDto.assigneeId,
       });
     }
+
     if (filterTaskDto.search) {
-      queryBuilder.andWhere('task.title LIKE :search', {
+      queryBuilder.andWhere('LOWER(task.title) LIKE LOWER(:search)', {
         search: `%${filterTaskDto.search}%`,
       });
     }
@@ -101,19 +104,31 @@ export class TasksService {
         dueDate: filterTaskDto.dueDate,
       });
     }
-    if (filterTaskDto.page) {
-      queryBuilder.skip((filterTaskDto.page - 1) * filterTaskDto.limit!);
-    }
-    if (filterTaskDto.limit) {
-      queryBuilder.take(filterTaskDto.limit);
-    }
+    const page = Number(filterTaskDto.page) || 1;
+    const limit = Number(filterTaskDto.limit) || 10;
+    queryBuilder.skip((page - 1) * limit).take(limit);
+
     if (filterTaskDto.sortBy) {
       queryBuilder.orderBy(
         'task.' + filterTaskDto.sortBy,
         filterTaskDto.sortOrder,
       );
     }
-    return queryBuilder.getMany();
+
+    const [tasks, totalFilteredTasks] = await queryBuilder.getManyAndCount();
+
+    const totalPages =
+      totalFilteredTasks === 0 ? 1 : Math.ceil(totalFilteredTasks / limit);
+
+    return {
+      tasks,
+      meta: {
+        page,
+        limit,
+        total: totalFilteredTasks,
+        totalPages,
+      },
+    };
   }
 
   async findOne(projectId: string, id: string) {
@@ -123,7 +138,11 @@ export class TasksService {
         projectId,
       },
       relations: {
-        project: true,
+        project: {
+          workspace: {
+            members: true,
+          },
+        },
         assigneeUser: true,
         createdByUser: true,
       },
@@ -166,7 +185,7 @@ export class TasksService {
       throw new NotFoundException(`Task with id ${id} not found`);
     }
     await this.taskRepository.softRemove(task);
-    return { message: 'Project deleted successfully' };
+    return { message: 'Task deleted successfully' };
   }
 
   // Kanban
@@ -287,21 +306,33 @@ export class TasksService {
         overdueTasks,
         completionRate,
       },
-      board,
+      tasks: board,
     };
   }
 
-  async updateAssigne(projectId: string, id: string, assigneeId: string) {
+  async updateAssigne(
+    workspaceId: string,
+    projectId: string,
+    id: string,
+    assigneeId: string,
+  ) {
     const task = await this.taskRepository.findOne({
       where: { id, projectId },
     });
     if (!task) {
       throw new NotFoundException(`Task with id ${id} not found`);
     }
-
-    await this.taskRepository.update(id, {
-      assigneeId,
-    });
+    if (assigneeId) {
+      const isMember = await this.workspaceMemberRepository.findOne({
+        where: { workspaceId, userId: assigneeId },
+      });
+      if (!isMember) {
+        throw new BadRequestException(
+          'Assignee is not a member of this workspace',
+        );
+      }
+    }
+    await this.taskRepository.update(id, { assigneeId });
     return await this.findOne(projectId, id);
   }
 }

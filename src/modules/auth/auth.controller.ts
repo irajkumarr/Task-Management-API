@@ -21,32 +21,31 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Auth')
+@Public()
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Public()
   @Post('register')
   register(@Body() createUserDto: CreateUserDto) {
     return this.authService.register(createUserDto);
   }
 
-  @Public()
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
   verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
     return this.authService.verifyEmail(verifyEmailDto);
   }
 
-  @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }
 
-  @Public()
   @Post('google')
   @HttpCode(HttpStatus.OK)
   googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
@@ -60,7 +59,6 @@ export class AuthController {
     return this.authService.logout(id);
   }
 
-  @Public()
   @UseGuards(RefreshJwtGuard)
   @Post('refresh-tokens')
   @HttpCode(HttpStatus.OK)
@@ -71,14 +69,12 @@ export class AuthController {
     );
   }
 
-  @Public()
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
 
-  @Public()
   @Post('verify-reset-token')
   @HttpCode(HttpStatus.OK)
   verifyResetToken(@Body() verifyResetTokenDto: VerifyResetTokenDto) {
@@ -88,7 +84,6 @@ export class AuthController {
     );
   }
 
-  @Public()
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {

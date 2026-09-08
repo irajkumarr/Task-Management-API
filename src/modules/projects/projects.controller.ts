@@ -14,7 +14,10 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { WorkspaceMemberGuard } from 'src/common/guards/workspace-member.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Projects')
+@ApiBearerAuth()
 @Controller('workspaces/:workspaceId/projects')
 @UseGuards(WorkspaceMemberGuard)
 export class ProjectsController {
