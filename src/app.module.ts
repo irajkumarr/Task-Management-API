@@ -9,6 +9,7 @@ import { WorkspaceMembersModule } from './modules/workspace-members/workspace-me
 import { ProjectsModule } from './modules/projects/projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
+import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { TaskCommentsModule } from './modules/task-comments/task-comments.module
     ProjectsModule,
     TasksModule,
     TaskCommentsModule,
+    TaskAttachmentsModule,
   ],
   controllers: [],
   providers: [

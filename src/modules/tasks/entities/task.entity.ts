@@ -1,4 +1,5 @@
 import { Project } from 'src/modules/projects/entities/project.entity';
+import { TaskAttachment } from 'src/modules/task-attachments/entities/task-attachment.entity';
 import { TaskComment } from 'src/modules/task-comments/entities/task-comment.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
@@ -91,4 +92,7 @@ export class Task {
 
   @OneToMany(() => TaskComment, (comment) => comment.task)
   comments!: TaskComment[];
+
+  @OneToMany(() => TaskAttachment, (attachment) => attachment.task)
+  attachments!: TaskAttachment[];
 }

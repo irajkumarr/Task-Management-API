@@ -14,7 +14,7 @@ auth controller
 
 test in postman making perfect folder structure
 
-
+next i will do task comments, task attachments and file uploads, and notifications and activity log. But first task comments. Provide me endpoints and high level schema for that
 
 
 
