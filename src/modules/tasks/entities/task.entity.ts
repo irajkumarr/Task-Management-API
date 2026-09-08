@@ -1,4 +1,5 @@
 import { Project } from 'src/modules/projects/entities/project.entity';
+import { TaskComment } from 'src/modules/task-comments/entities/task-comment.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import {
   Entity,
@@ -9,6 +10,7 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 
 export const TaskStatus = {
@@ -86,4 +88,7 @@ export class Task {
 
   @DeleteDateColumn()
   deletedAt!: Date;
+
+  @OneToMany(() => TaskComment, (comment) => comment.task)
+  comments!: TaskComment[];
 }

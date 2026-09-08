@@ -1,3 +1,4 @@
+import { TaskComment } from 'src/modules/task-comments/entities/task-comment.entity';
 import { Task } from 'src/modules/tasks/entities/task.entity';
 import { WorkspaceMember } from 'src/modules/workspace-members/entities/workspace-member.entity';
 import { Workspace } from 'src/modules/workspaces/entities/workspace.entity';
@@ -96,4 +97,7 @@ export class User {
 
   @DeleteDateColumn()
   deletedAt?: Date;
+
+  @OneToMany(() => TaskComment, (comment) => comment.author)
+  comments!: TaskComment[];
 }
