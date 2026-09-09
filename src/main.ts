@@ -6,6 +6,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { SanitizationPipe } from './common/pipes/sanitization.pipe';
 import { validateEnv } from './config/env.validation';
 import { setupSwagger } from './config/swagger.config';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
   validateEnv();
@@ -17,8 +18,10 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalPipes(new SanitizationPipe());
-
+  app.useLogger(app.get(Logger));
   setupSwagger(app);
+  // Enable graceful shutdown hooks
+  app.enableShutdownHooks();
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();

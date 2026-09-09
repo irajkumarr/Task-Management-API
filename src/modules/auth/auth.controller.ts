@@ -13,7 +13,7 @@ import { VerifyEmailDto } from './dto/verify-email.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RefreshJwtGuard } from 'src/common/guards/refresh-token.guard';
-
+import { Throttle } from '@nestjs/throttler';
 import { Public } from 'src/common/decorators/public.decorator';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { VerifyResetTokenDto } from './dto/verify-token.dto';
@@ -40,6 +40,7 @@ export class AuthController {
     return this.authService.verifyEmail(verifyEmailDto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   login(@Body() loginDto: LoginDto) {
