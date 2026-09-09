@@ -15,15 +15,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { UsersService } from '../users/users.service';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
-import { Workspace } from '../workspaces/entities/workspace.entity';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AppEvents } from 'src/common/constants/events.constant';
+import {
+  MemberJoinedEvent,
+  MemberRemovedEvent,
+  MemberRoleChangedEvent,
+} from 'src/common/events/app-events';
 
 @Injectable()
 export class WorkspaceMembersService {
   constructor(
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
-
     private readonly usersService: UsersService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -41,14 +47,19 @@ export class WorkspaceMembersService {
     return await this.workspaceMemberRepository.save(workspaceMember);
   }
 
-  async inviteMember(workspaceId: string, inviteMemberDto: InviteMemberDto) {
+  async inviteMember(
+    workspaceId: string,
+    inviteMemberDto: InviteMemberDto,
+    actorId: string,
+    actorName: string,
+  ) {
     const user = await this.usersService.findByEmail(inviteMemberDto.email);
     if (!user) {
       throw new NotFoundException(
         `No user found with email ${inviteMemberDto.email}`,
       );
     }
-    const workspaceMember = this.create({
+    const workspaceMember = await this.create({
       workspaceId,
       userId: user.id,
       role: inviteMemberDto.role ?? WorkspaceRole.MEMBER,
@@ -58,6 +69,18 @@ export class WorkspaceMembersService {
       throw new ConflictException('User already in workspace');
     }
 
+    this.eventEmitter.emit(
+      AppEvents.MEMBER_JOINED,
+      new MemberJoinedEvent(
+        workspaceId,
+        user.id,
+        user.fullName,
+        workspaceMember.role,
+        actorId,
+        actorName,
+      ),
+    );
+
     return workspaceMember;
   }
 
@@ -66,11 +89,15 @@ export class WorkspaceMembersService {
     targetUserId: string,
     currentMember: WorkspaceMember,
     updateMemberRoleDto: UpdateMemberRoleDto,
+    actorName: string,
   ) {
     const targetMember = await this.workspaceMemberRepository.findOne({
       where: {
         workspaceId,
         userId: targetUserId,
+      },
+      relations: {
+        user: true,
       },
     });
 
@@ -105,20 +132,39 @@ export class WorkspaceMembersService {
       throw new ForbiddenException('Insufficient permissions');
     }
 
+    const oldRole = targetMember.role;
     targetMember.role = updateMemberRoleDto.role;
+    const saved = await this.workspaceMemberRepository.save(targetMember);
 
-    return await this.workspaceMemberRepository.save(targetMember);
+    this.eventEmitter.emit(
+      AppEvents.MEMBER_ROLE_CHANGED,
+      new MemberRoleChangedEvent(
+        workspaceId,
+        targetUserId,
+        targetMember.user?.fullName || 'Member',
+        oldRole,
+        saved.role,
+        currentMember.userId,
+        actorName,
+      ),
+    );
+
+    return saved;
   }
 
   async removeMember(
     workspaceId: string,
     targetUserId: string,
     currentMember: WorkspaceMember,
+    actorName: string,
   ) {
     const targetMember = await this.workspaceMemberRepository.findOne({
       where: {
         workspaceId,
         userId: targetUserId,
+      },
+      relations: {
+        user: true,
       },
     });
 
@@ -141,6 +187,19 @@ export class WorkspaceMembersService {
       );
     }
 
-    return await this.workspaceMemberRepository.remove(targetMember);
+    const removed = await this.workspaceMemberRepository.remove(targetMember);
+
+    this.eventEmitter.emit(
+      AppEvents.MEMBER_REMOVED,
+      new MemberRemovedEvent(
+        workspaceId,
+        targetUserId,
+        targetMember.user?.fullName || 'Member',
+        currentMember.userId,
+        actorName,
+      ),
+    );
+
+    return removed;
   }
 }

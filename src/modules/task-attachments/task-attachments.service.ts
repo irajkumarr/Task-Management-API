@@ -11,19 +11,32 @@ import {
 } from './entities/task-attachment.entity';
 import { Repository } from 'typeorm';
 import * as storageInterface from 'src/common/services/storage/storage.interface';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AppEvents } from 'src/common/constants/events.constant';
+import {
+  TaskAttachmentDeletedEvent,
+  TaskAttachmentUploadedEvent,
+} from 'src/common/events/app-events';
+import { Task } from '../tasks/entities/task.entity';
 
 @Injectable()
 export class TaskAttachmentsService {
   constructor(
     @InjectRepository(TaskAttachment)
     private readonly taskAttachmentRepository: Repository<TaskAttachment>,
+    @InjectRepository(Task)
+    private readonly taskRepository: Repository<Task>,
     @Inject('STORAGE_SERVICE')
     private readonly storageService: storageInterface.IStorageService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async uploadAttachments(
+    workspaceId: string,
+    projectId: string,
     taskId: string,
     userId: string,
+    userName: string,
     files: Express.Multer.File[],
   ) {
     if (!files || files.length === 0) {
@@ -32,13 +45,15 @@ export class TaskAttachmentsService {
       );
     }
 
-    // Upload files concurrently to Cloudinary
+    const task = await this.taskRepository.findOne({
+      where: { id: taskId, projectId },
+    });
+
     const uploadPromises = files.map(async (file) => {
       const uploadResult = await this.storageService.uploadFile(
         file,
         'tasks_attachments',
       );
-      //  Map file data and Cloudinary payload directly to your TaskAttachment schema
       return this.taskAttachmentRepository.create({
         taskId,
         uploadedById: userId,
@@ -55,10 +70,22 @@ export class TaskAttachmentsService {
       });
     });
     const attachmentsToSave = await Promise.all(uploadPromises);
-
-    //  Save all attachment rows to the database in a single batch operation
     const attachments =
       await this.taskAttachmentRepository.save(attachmentsToSave);
+
+    this.eventEmitter.emit(
+      AppEvents.TASK_ATTACHMENT_UPLOADED,
+      new TaskAttachmentUploadedEvent(
+        taskId,
+        task?.title || 'Task',
+        projectId,
+        workspaceId,
+        files.length,
+        userId,
+        userName,
+        task?.assigneeId,
+      ),
+    );
 
     return attachments;
   }
@@ -103,12 +130,33 @@ export class TaskAttachmentsService {
     return attachment;
   }
 
-  async remove(taskId: string, id: string) {
+  async remove(
+    workspaceId: string,
+    projectId: string,
+    taskId: string,
+    id: string,
+    userId: string,
+    userName: string,
+  ) {
     const file = await this.findOne(taskId, id);
     if (file.publicId) {
       await this.storageService.deleteFile(file.publicId!);
       await this.taskAttachmentRepository.softRemove(file);
     }
+
+    this.eventEmitter.emit(
+      AppEvents.TASK_ATTACHMENT_DELETED,
+      new TaskAttachmentDeletedEvent(
+        taskId,
+        id,
+        file.originalName,
+        projectId,
+        workspaceId,
+        userId,
+        userName,
+      ),
+    );
+
     return {
       message: 'File deleted successfully',
     };

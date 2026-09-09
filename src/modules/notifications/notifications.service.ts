@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FilterNotificationsDto } from './dto/filter-notifications.dto';
 import { OnEvent } from '@nestjs/event-emitter';
+import { AppEvents } from 'src/common/constants/events.constant';
 import { TaskAssignedEvent } from './events/task-assigned.event';
 import { TaskStatusChangedEvent } from './events/task-status-changed.event';
 import { CommentAddedEvent } from './events/comment-added.event';
@@ -12,7 +13,7 @@ import { CommentAddedEvent } from './events/comment-added.event';
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
-    private notificationsRepository: Repository<Notification>,
+    private readonly notificationsRepository: Repository<Notification>,
   ) {}
 
   async create(data: {
@@ -33,7 +34,7 @@ export class NotificationsService {
       .leftJoinAndSelect('notification.actor', 'actor')
       .where('notification.recipientId = :userId', { userId });
 
-    if (filterNotificationDto.isRead) {
+    if (filterNotificationDto.isRead !== undefined) {
       queryBuilder.andWhere('notification.isRead = :isRead', {
         isRead: filterNotificationDto.isRead,
       });
@@ -47,7 +48,10 @@ export class NotificationsService {
 
     const page = Number(filterNotificationDto.page) || 1;
     const limit = Number(filterNotificationDto.limit) || 10;
-    queryBuilder.skip((page - 1) * limit).take(limit);
+    queryBuilder
+      .orderBy('notification.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
 
     const [notifications, totalFilteredNotifications] =
       await queryBuilder.getManyAndCount();
@@ -120,15 +124,15 @@ export class NotificationsService {
     return { message: 'Notification deleted successfully' };
   }
 
-  // event driven
+  // ================= EVENT LISTENERS =================
 
-  @OnEvent('task.assigned')
+  @OnEvent(AppEvents.TASK_ASSIGNED)
   async handleTaskAssigned(event: TaskAssignedEvent) {
     if (event.assigneeId === event.actorId) return;
     await this.create({
       type: NotificationType.TASK_ASSIGNED,
       title: 'New Task Assigned',
-      message: `${event.actorName} assigned you to ${event.taskTitle}`,
+      message: `${event.actorName} assigned you to "${event.taskTitle}"`,
       recipientId: event.assigneeId,
       actorId: event.actorId,
       metadata: {
@@ -139,7 +143,7 @@ export class NotificationsService {
     });
   }
 
-  @OnEvent('task.status.changed')
+  @OnEvent(AppEvents.TASK_STATUS_CHANGED)
   async handleTaskStatusChanged(event: TaskStatusChangedEvent) {
     if (event.recipientId === event.actorId) return;
     await this.create({
@@ -156,7 +160,7 @@ export class NotificationsService {
     });
   }
 
-  @OnEvent('task.comment.added')
+  @OnEvent(AppEvents.COMMENT_ADDED)
   async handleCommentAdded(event: CommentAddedEvent) {
     if (event.recipientId === event.authorId) return;
     await this.create({

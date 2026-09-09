@@ -7,7 +7,6 @@ import {
   Param,
   Delete,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
@@ -26,12 +25,13 @@ export class ProjectsController {
   @Post()
   async create(
     @Param('workspaceId') workspaceId: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser() user: { id: string; fullName: string },
     @Body() createProjectDto: CreateProjectDto,
   ) {
     const project = await this.projectsService.create(
       workspaceId,
-      userId,
+      user.id,
+      user.fullName || 'A member',
       createProjectDto,
     );
     return {
@@ -65,11 +65,14 @@ export class ProjectsController {
   async update(
     @Param('workspaceId') workspaceId: string,
     @Param('id') id: string,
+    @CurrentUser() user: { id: string; fullName: string },
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
     const updatedProject = await this.projectsService.update(
       workspaceId,
       id,
+      user.id,
+      user.fullName || 'A member',
       updateProjectDto,
     );
     return {
@@ -79,7 +82,16 @@ export class ProjectsController {
   }
 
   @Delete(':id')
-  remove(@Param('workspaceId') workspaceId: string, @Param('id') id: string) {
-    return this.projectsService.remove(workspaceId, id);
+  async remove(
+    @Param('workspaceId') workspaceId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string; fullName: string },
+  ) {
+    return this.projectsService.remove(
+      workspaceId,
+      id,
+      user.id,
+      user.fullName || 'A member',
+    );
   }
 }

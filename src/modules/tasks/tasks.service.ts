@@ -12,8 +12,15 @@ import { Project } from '../projects/entities/project.entity';
 import { WorkspaceMember } from '../workspace-members/entities/workspace-member.entity';
 import { FilterTaskDto } from './dto/filter-task.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { TaskAssignedEvent } from '../notifications/events/task-assigned.event';
 import { TaskStatusChangedEvent } from '../notifications/events/task-status-changed.event';
+import { TaskAssignedEvent } from '../notifications/events/task-assigned.event';
+import { AppEvents } from 'src/common/constants/events.constant';
+import {
+  TaskCreatedEvent,
+  TaskDeletedEvent,
+  TaskMovedEvent,
+  TaskUpdatedEvent,
+} from 'src/common/events/app-events';
 
 @Injectable()
 export class TasksService {
@@ -31,9 +38,10 @@ export class TasksService {
     workspaceId: string,
     projectId: string,
     userId: string,
+    userName: string,
     createTaskDto: CreateTaskDto,
   ) {
-    //  Verify that the project exists and belongs to this workspace
+    // Verify that the project exists and belongs to this workspace
     const project = await this.projectRepository.findOne({
       where: { id: projectId, workspaceId },
     });
@@ -68,6 +76,7 @@ export class TasksService {
     const nextPosition = highestPositionTask
       ? highestPositionTask.position + 1
       : 0;
+
     // Create and save the task
     const task = this.taskRepository.create({
       ...createTaskDto,
@@ -75,7 +84,38 @@ export class TasksService {
       createdById: userId,
       position: nextPosition,
     });
-    return await this.taskRepository.save(task);
+    const savedTask = await this.taskRepository.save(task);
+
+    // Emit task.created
+    this.eventEmitter.emit(
+      AppEvents.TASK_CREATED,
+      new TaskCreatedEvent(
+        savedTask.id,
+        savedTask.title,
+        projectId,
+        workspaceId,
+        userId,
+        userName,
+      ),
+    );
+
+    // If created with an assignee, emit task.assigned
+    if (savedTask.assigneeId) {
+      this.eventEmitter.emit(
+        AppEvents.TASK_ASSIGNED,
+        new TaskAssignedEvent(
+          savedTask.id,
+          savedTask.title,
+          projectId,
+          workspaceId,
+          savedTask.assigneeId,
+          userId,
+          userName,
+        ),
+      );
+    }
+
+    return savedTask;
   }
 
   async findAll(projectId: string, filterTaskDto: FilterTaskDto) {
@@ -169,7 +209,14 @@ export class TasksService {
     return task;
   }
 
-  async update(projectId: string, id: string, updateTaskDto: UpdateTaskDto) {
+  async update(
+    workspaceId: string,
+    projectId: string,
+    id: string,
+    userId: string,
+    userName: string,
+    updateTaskDto: UpdateTaskDto,
+  ) {
     const task = await this.taskRepository.findOne({
       where: { id, projectId },
     });
@@ -178,10 +225,31 @@ export class TasksService {
     }
 
     await this.taskRepository.update(id, updateTaskDto);
-    return await this.findOne(projectId, id);
+    const updated = await this.findOne(projectId, id);
+
+    this.eventEmitter.emit(
+      AppEvents.TASK_UPDATED,
+      new TaskUpdatedEvent(
+        updated.id,
+        updated.title,
+        projectId,
+        workspaceId,
+        userId,
+        userName,
+        updateTaskDto as any,
+      ),
+    );
+
+    return updated;
   }
 
-  async remove(projectId: string, id: string) {
+  async remove(
+    workspaceId: string,
+    projectId: string,
+    id: string,
+    userId: string,
+    userName: string,
+  ) {
     const task = await this.taskRepository.findOne({
       where: { id, projectId },
     });
@@ -189,10 +257,23 @@ export class TasksService {
       throw new NotFoundException(`Task with id ${id} not found`);
     }
     await this.taskRepository.softRemove(task);
+
+    this.eventEmitter.emit(
+      AppEvents.TASK_DELETED,
+      new TaskDeletedEvent(
+        task.id,
+        task.title,
+        projectId,
+        workspaceId,
+        userId,
+        userName,
+      ),
+    );
+
     return { message: 'Task deleted successfully' };
   }
 
-  // Kanban
+  // Kanban status update
   async updateStatus(
     workspaceId: string,
     projectId: string,
@@ -212,9 +293,10 @@ export class TasksService {
       status,
     });
     const updatedTask = await this.findOne(projectId, id);
+
     if (updatedTask.assigneeId) {
       this.eventEmitter.emit(
-        'task.status.changed',
+        AppEvents.TASK_STATUS_CHANGED,
         new TaskStatusChangedEvent(
           task.id,
           task.title,
@@ -232,9 +314,12 @@ export class TasksService {
   }
 
   async updatePosition(
+    workspaceId: string,
     projectId: string,
     id: string,
     data: { status: string; position: number },
+    actorId: string,
+    actorName: string,
   ) {
     const task = await this.taskRepository.findOne({
       where: { id, projectId },
@@ -247,7 +332,24 @@ export class TasksService {
       status: data.status,
       position: data.position,
     });
-    return await this.findOne(projectId, id);
+
+    const updatedTask = await this.findOne(projectId, id);
+
+    this.eventEmitter.emit(
+      AppEvents.TASK_MOVED,
+      new TaskMovedEvent(
+        task.id,
+        task.title,
+        projectId,
+        workspaceId,
+        data.status,
+        data.position,
+        actorId,
+        actorName,
+      ),
+    );
+
+    return updatedTask;
   }
 
   async getTaskBoard(projectId: string) {
@@ -264,7 +366,6 @@ export class TasksService {
       [TaskStatus.CANCELLED]: [],
     };
 
-    // Group tasks into their respective status arrays
     for (const task of tasks) {
       if (board[task.status]) {
         board[task.status].push(task);
@@ -296,12 +397,10 @@ export class TasksService {
     const now = new Date();
 
     for (const task of tasks) {
-      // 1. Group tasks by status
       if (board[task.status]) {
         board[task.status].push(task);
       }
 
-      // 2. Calculate metrics
       if (task.status === TaskStatus.DONE) {
         completedTasks++;
       }
@@ -309,7 +408,6 @@ export class TasksService {
         inProgressTasks++;
       }
 
-      // Assuming you have a 'dueDate' field on your task entity
       if (
         task.dueDate &&
         new Date(task.dueDate) < now &&
@@ -320,7 +418,6 @@ export class TasksService {
       }
     }
 
-    // 3. Calculate completion rate (avoid division by zero)
     const completionRate =
       totalTasks > 0
         ? `${((completedTasks / totalTasks) * 100).toFixed(1)}%`
@@ -367,7 +464,7 @@ export class TasksService {
     const updatedTask = await this.findOne(projectId, id);
     if (assigneeId) {
       this.eventEmitter.emit(
-        'task.assigned',
+        AppEvents.TASK_ASSIGNED,
         new TaskAssignedEvent(
           task.id,
           task.title,

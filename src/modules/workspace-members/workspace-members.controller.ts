@@ -17,6 +17,7 @@ import { WorkspaceRoles } from 'src/common/decorators/workspace-roles.decorator'
 import { WorkspaceRole } from './entities/workspace-member.entity';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @ApiTags('Workspace Members')
 @ApiBearerAuth()
@@ -36,11 +37,14 @@ export class WorkspaceMembersController {
   @WorkspaceRoles(WorkspaceRole.ADMIN, WorkspaceRole.OWNER)
   async inviteMember(
     @Param('id') workspaceId: string,
+    @CurrentUser() user: { id: string; fullName: string },
     @Body() inviteMemberDto: InviteMemberDto,
   ) {
     const invitedMember = await this.workspaceMembersService.inviteMember(
       workspaceId,
       inviteMemberDto,
+      user.id,
+      user.fullName || 'An Admin',
     );
 
     return {
@@ -53,7 +57,8 @@ export class WorkspaceMembersController {
   @UseGuards(WorkspaceMemberGuard, WorkspaceRolesGuard)
   @WorkspaceRoles(WorkspaceRole.ADMIN, WorkspaceRole.OWNER)
   async updateMemberRole(
-    @Req() req,
+    @Req() req: any,
+    @CurrentUser() user: { id: string; fullName: string },
     @Param('id') workspaceId: string,
     @Param('userId') targetUserId: string,
     @Body() updateMemberRoleDto: UpdateMemberRoleDto,
@@ -63,6 +68,7 @@ export class WorkspaceMembersController {
       targetUserId,
       req.workspaceMember,
       updateMemberRoleDto,
+      user?.fullName || 'An Admin',
     );
 
     return {
@@ -75,7 +81,8 @@ export class WorkspaceMembersController {
   @UseGuards(WorkspaceMemberGuard, WorkspaceRolesGuard)
   @WorkspaceRoles(WorkspaceRole.ADMIN, WorkspaceRole.OWNER)
   async removeMember(
-    @Req() req,
+    @Req() req: any,
+    @CurrentUser() user: { id: string; fullName: string },
     @Param('id') workspaceId: string,
     @Param('userId') targetUserId: string,
   ) {
@@ -83,10 +90,10 @@ export class WorkspaceMembersController {
       workspaceId,
       targetUserId,
       req.workspaceMember,
+      user?.fullName || 'An Admin',
     );
     return {
       message: 'Member removed successfully',
     };
   }
-
 }

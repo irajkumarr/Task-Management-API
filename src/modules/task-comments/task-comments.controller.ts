@@ -47,12 +47,15 @@ export class TaskCommentsController {
     @Param('workspaceId') workspaceId: string,
     @Param('projectId') projectId: string,
     @Param('taskId') taskId: string,
-    @CurrentUser('id') authorId: string,
+    @CurrentUser() user: { id: string; fullName: string },
     @Body() createTaskCommentDto: CreateTaskCommentDto,
   ) {
     const comment = await this.taskCommentsService.create(
+      workspaceId,
+      projectId,
       taskId,
-      authorId,
+      user.id,
+      user.fullName || 'A member',
       createTaskCommentDto,
     );
     return {
@@ -121,7 +124,15 @@ export class TaskCommentsController {
     @Param('projectId') projectId: string,
     @Param('taskId') taskId: string,
     @Param('id') id: string,
+    @CurrentUser() user: { id: string; fullName: string },
   ) {
-    return await this.taskCommentsService.remove(taskId, id);
+    return await this.taskCommentsService.remove(
+      workspaceId,
+      projectId,
+      taskId,
+      id,
+      user.id,
+      user.fullName || 'A member',
+    );
   }
 }

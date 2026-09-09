@@ -2,8 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
@@ -67,12 +65,15 @@ export class TaskAttachmentsController {
     @Param('workspaceId') workspaceId: string,
     @Param('projectId') projectId: string,
     @Param('taskId') taskId: string,
-    @CurrentUser('id') userId: string,
+    @CurrentUser() user: { id: string; fullName: string },
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     const response = await this.taskAttachmentsService.uploadAttachments(
+      workspaceId,
+      projectId,
       taskId,
-      userId,
+      user.id,
+      user.fullName || 'A member',
       files,
     );
     return {
@@ -115,7 +116,15 @@ export class TaskAttachmentsController {
     @Param('projectId') projectId: string,
     @Param('taskId') taskId: string,
     @Param('id') id: string,
+    @CurrentUser() user: { id: string; fullName: string },
   ) {
-    return await this.taskAttachmentsService.remove(taskId, id);
+    return await this.taskAttachmentsService.remove(
+      workspaceId,
+      projectId,
+      taskId,
+      id,
+      user.id,
+      user.fullName || 'A member',
+    );
   }
 }

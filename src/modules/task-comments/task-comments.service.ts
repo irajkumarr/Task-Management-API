@@ -7,6 +7,8 @@ import { Repository } from 'typeorm';
 import { FilterCommentsDto } from './dto/filter-comment.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CommentAddedEvent } from '../notifications/events/comment-added.event';
+import { AppEvents } from 'src/common/constants/events.constant';
+import { CommentDeletedEvent } from 'src/common/events/app-events';
 
 @Injectable()
 export class TaskCommentsService {
@@ -17,8 +19,11 @@ export class TaskCommentsService {
   ) {}
 
   async create(
+    workspaceId: string,
+    projectId: string,
     taskId: string,
     authorId: string,
+    authorName: string,
     createTaskCommentDto: CreateTaskCommentDto,
   ) {
     const taskComment = this.taskCommentRepository.create({
@@ -32,16 +37,16 @@ export class TaskCommentsService {
 
     if (comment.task?.assigneeId && comment.task.assigneeId !== authorId) {
       this.eventEmitter.emit(
-        'task.comment.added',
+        AppEvents.COMMENT_ADDED,
         new CommentAddedEvent(
           comment.id,
           taskId,
           comment.task.title,
-          comment.task.projectId,
-          comment.task.project?.workspaceId,
+          projectId,
+          workspaceId,
           comment.task.assigneeId,
           authorId,
-          comment.author?.fullName || 'Someone',
+          authorName || 'Someone',
         ),
       );
     }
@@ -108,7 +113,6 @@ export class TaskCommentsService {
         author: {
           id: true,
           fullName: true,
-          email: true,
         },
       },
     });
@@ -134,7 +138,14 @@ export class TaskCommentsService {
     return await this.findOne(taskId, id);
   }
 
-  async remove(taskId: string, id: string) {
+  async remove(
+    workspaceId: string,
+    projectId: string,
+    taskId: string,
+    id: string,
+    userId: string,
+    userName: string,
+  ) {
     const taskComment = await this.taskCommentRepository.findOne({
       where: { id, taskId },
     });
@@ -142,6 +153,19 @@ export class TaskCommentsService {
       throw new NotFoundException(`Comment with id ${id} not found`);
     }
     await this.taskCommentRepository.softRemove(taskComment);
+
+    this.eventEmitter.emit(
+      AppEvents.COMMENT_DELETED,
+      new CommentDeletedEvent(
+        id,
+        taskId,
+        projectId,
+        workspaceId,
+        userId,
+        userName,
+      ),
+    );
+
     return { message: 'Comment deleted successfully' };
   }
 }

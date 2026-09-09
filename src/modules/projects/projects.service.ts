@@ -5,17 +5,26 @@ import { Project } from './entities/project.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Not, Repository } from 'typeorm';
 import { slugify } from 'src/common/utils/slug.util';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AppEvents } from 'src/common/constants/events.constant';
+import {
+  ProjectCreatedEvent,
+  ProjectDeletedEvent,
+  ProjectUpdatedEvent,
+} from 'src/common/events/app-events';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     @InjectRepository(Project)
     private projectsRepository: Repository<Project>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
     workspaceId: string,
     userId: string,
+    userName: string,
     createProjectDto: CreateProjectDto,
   ) {
     const slug = await this.generateUniqueSlug(
@@ -30,7 +39,20 @@ export class ProjectsService {
       createdById: userId,
     });
 
-    return await this.projectsRepository.save(project);
+    const savedProject = await this.projectsRepository.save(project);
+
+    this.eventEmitter.emit(
+      AppEvents.PROJECT_CREATED,
+      new ProjectCreatedEvent(
+        savedProject.id,
+        savedProject.name,
+        workspaceId,
+        userId,
+        userName,
+      ),
+    );
+
+    return savedProject;
   }
 
   async findAll(workspaceId: string) {
@@ -65,6 +87,8 @@ export class ProjectsService {
   async update(
     workspaceId: string,
     id: string,
+    userId: string,
+    userName: string,
     updateProjectDto: UpdateProjectDto,
   ) {
     const project = await this.projectsRepository.findOne({
@@ -75,10 +99,28 @@ export class ProjectsService {
     }
 
     await this.projectsRepository.update(id, updateProjectDto);
-    return await this.findOne(workspaceId, id);
+    const updatedProject = await this.findOne(workspaceId, id);
+
+    this.eventEmitter.emit(
+      AppEvents.PROJECT_UPDATED,
+      new ProjectUpdatedEvent(
+        updatedProject.id,
+        updatedProject.name,
+        workspaceId,
+        userId,
+        userName,
+      ),
+    );
+
+    return updatedProject;
   }
 
-  async remove(workspaceId: string, id: string) {
+  async remove(
+    workspaceId: string,
+    id: string,
+    userId: string,
+    userName: string,
+  ) {
     const project = await this.projectsRepository.findOne({
       where: { id, workspaceId },
     });
@@ -86,6 +128,18 @@ export class ProjectsService {
       throw new NotFoundException(`Project with id ${id} not found`);
     }
     await this.projectsRepository.softRemove(project);
+
+    this.eventEmitter.emit(
+      AppEvents.PROJECT_DELETED,
+      new ProjectDeletedEvent(
+        project.id,
+        project.name,
+        workspaceId,
+        userId,
+        userName,
+      ),
+    );
+
     return { message: 'Project deleted successfully' };
   }
 

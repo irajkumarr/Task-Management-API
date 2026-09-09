@@ -11,6 +11,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
@@ -24,11 +25,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        // host: configService.get<string>('DB_HOST'),
-        // port: Number(configService.get<string>('DB_PORT')),
-        // username: configService.get<string>('DB_USERNAME'),
-        // password: configService.get<string>('DB_PASSWORD'),
-        // database: configService.get<string>('DB_PASSWORD'),
         url: configService.get<string>('DATABASE_URL'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Only for development!
@@ -44,6 +40,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     TaskCommentsModule,
     TaskAttachmentsModule,
     NotificationsModule,
+    ActivityLogsModule,
   ],
   controllers: [],
   providers: [
