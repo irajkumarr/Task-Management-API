@@ -55,6 +55,19 @@ export class ActivityLogsService {
     const queryBuilder = this.activityLogRepository
       .createQueryBuilder('log')
       .leftJoinAndSelect('log.actor', 'actor')
+      .select([
+        'log.id',
+        'log.action',
+        'log.entityType',
+        'log.entityId',
+        'log.description',
+        'log.details',
+        'log.workspaceId',
+        'log.projectId',
+        'log.createdAt',
+        'actor.id',
+        'actor.fullName',
+      ])
       .where('log.workspaceId = :workspaceId', { workspaceId });
 
     if (filterDto.projectId) {

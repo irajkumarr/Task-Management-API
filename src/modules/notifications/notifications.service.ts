@@ -32,6 +32,19 @@ export class NotificationsService {
     const queryBuilder = this.notificationsRepository
       .createQueryBuilder('notification')
       .leftJoinAndSelect('notification.actor', 'actor')
+      .select([
+        'notification.id',
+        'notification.type',
+        'notification.title',
+        'notification.message',
+        'notification.isRead',
+        'notification.readAt',
+        'notification.metadata',
+        'notification.recipientId',
+        'notification.createdAt',
+        'actor.id',
+        'actor.fullName',
+      ])
       .where('notification.recipientId = :userId', { userId });
 
     if (filterNotificationDto.isRead !== undefined) {
