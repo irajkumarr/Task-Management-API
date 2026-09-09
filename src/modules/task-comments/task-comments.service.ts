@@ -5,12 +5,15 @@ import { TaskComment } from './entities/task-comment.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FilterCommentsDto } from './dto/filter-comment.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CommentAddedEvent } from '../notifications/events/comment-added.event';
 
 @Injectable()
 export class TaskCommentsService {
   constructor(
     @InjectRepository(TaskComment)
     private readonly taskCommentRepository: Repository<TaskComment>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -24,7 +27,25 @@ export class TaskCommentsService {
       authorId,
     });
     const saved = await this.taskCommentRepository.save(taskComment);
-    return await this.findOne(taskId, saved.id);
+
+    const comment = await this.findOne(taskId, saved.id);
+
+    if (comment.task?.assigneeId && comment.task.assigneeId !== authorId) {
+      this.eventEmitter.emit(
+        'task.comment.added',
+        new CommentAddedEvent(
+          comment.id,
+          taskId,
+          comment.task.title,
+          comment.task.projectId,
+          comment.task.project?.workspaceId,
+          comment.task.assigneeId,
+          authorId,
+          comment.author?.fullName || 'Someone',
+        ),
+      );
+    }
+    return comment;
   }
 
   async findAll(taskId: string, filterCommentDto: FilterCommentsDto) {
@@ -75,7 +96,7 @@ export class TaskCommentsService {
       },
       relations: {
         author: true,
-        task:true
+        task: true,
       },
       select: {
         id: true,

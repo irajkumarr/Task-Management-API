@@ -109,11 +109,15 @@ export class TasksController {
     @Param('projectId') projectId: string,
     @Param('id') id: string,
     @Body() data: UpdateTaskStatusDto,
+    @CurrentUser() userData: { fullName: string; id: string },
   ) {
     const task = await this.tasksService.updateStatus(
+      workspaceId,
       projectId,
       id,
       data.status,
+      userData.id,
+      userData.fullName,
     );
     return { message: 'Task status updated successfully', data: task };
   }
@@ -152,6 +156,7 @@ export class TasksController {
   @Patch(':id/assignee')
   @UseGuards(TaskOwnershipGuard)
   async updateAssigne(
+    @CurrentUser() userData: { fullName: string; id: string },
     @Param('workspaceId') workspaceId: string,
     @Param('projectId') projectId: string,
     @Param('id') id: string,
@@ -162,6 +167,8 @@ export class TasksController {
       projectId,
       id,
       data.assigneeId,
+      userData.id,
+      userData.fullName,
     );
     return { message: 'Task assigned successfully', data: task };
   }

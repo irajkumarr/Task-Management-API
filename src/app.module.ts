@@ -10,12 +10,15 @@ import { ProjectsModule } from './modules/projects/projects.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { TaskCommentsModule } from './modules/task-comments/task-comments.module';
 import { TaskAttachmentsModule } from './modules/task-attachments/task-attachments.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    EventEmitterModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -40,6 +43,7 @@ import { TaskAttachmentsModule } from './modules/task-attachments/task-attachmen
     TasksModule,
     TaskCommentsModule,
     TaskAttachmentsModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [

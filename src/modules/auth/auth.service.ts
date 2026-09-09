@@ -258,6 +258,7 @@ export class AuthService {
     const accessToken = await this.jwtService.signAsync(
       {
         sub: user.id,
+        fullName: user.fullName,
         email: user.email,
         role: user.role,
         type: 'access',

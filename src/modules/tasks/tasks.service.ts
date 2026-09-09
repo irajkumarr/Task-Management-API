@@ -11,6 +11,9 @@ import { Repository } from 'typeorm';
 import { Project } from '../projects/entities/project.entity';
 import { WorkspaceMember } from '../workspace-members/entities/workspace-member.entity';
 import { FilterTaskDto } from './dto/filter-task.dto';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { TaskAssignedEvent } from '../notifications/events/task-assigned.event';
+import { TaskStatusChangedEvent } from '../notifications/events/task-status-changed.event';
 
 @Injectable()
 export class TasksService {
@@ -21,6 +24,7 @@ export class TasksService {
     private readonly projectRepository: Repository<Project>,
     @InjectRepository(WorkspaceMember)
     private readonly workspaceMemberRepository: Repository<WorkspaceMember>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(
@@ -189,7 +193,14 @@ export class TasksService {
   }
 
   // Kanban
-  async updateStatus(projectId: string, id: string, status: string) {
+  async updateStatus(
+    workspaceId: string,
+    projectId: string,
+    id: string,
+    status: string,
+    actorId: string,
+    actorName: string,
+  ) {
     const task = await this.taskRepository.findOne({
       where: { id, projectId },
     });
@@ -200,7 +211,24 @@ export class TasksService {
     await this.taskRepository.update(id, {
       status,
     });
-    return await this.findOne(projectId, id);
+    const updatedTask = await this.findOne(projectId, id);
+    if (updatedTask.assigneeId) {
+      this.eventEmitter.emit(
+        'task.status.changed',
+        new TaskStatusChangedEvent(
+          task.id,
+          task.title,
+          task.status, // oldStatus
+          updatedTask.status, // newStatus
+          projectId, // projectId
+          workspaceId || '', // workspaceId
+          updatedTask.assigneeId, // recipientId
+          actorId ?? '',
+          actorName ?? 'A team member',
+        ),
+      );
+    }
+    return updatedTask;
   }
 
   async updatePosition(
@@ -315,6 +343,8 @@ export class TasksService {
     projectId: string,
     id: string,
     assigneeId: string,
+    actorId: string,
+    actorName: string,
   ) {
     const task = await this.taskRepository.findOne({
       where: { id, projectId },
@@ -333,6 +363,22 @@ export class TasksService {
       }
     }
     await this.taskRepository.update(id, { assigneeId });
-    return await this.findOne(projectId, id);
+
+    const updatedTask = await this.findOne(projectId, id);
+    if (assigneeId) {
+      this.eventEmitter.emit(
+        'task.assigned',
+        new TaskAssignedEvent(
+          task.id,
+          task.title,
+          projectId,
+          workspaceId,
+          assigneeId,
+          actorId || '',
+          actorName || 'A team member',
+        ),
+      );
+    }
+    return updatedTask;
   }
 }
