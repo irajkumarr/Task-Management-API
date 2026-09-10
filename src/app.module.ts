@@ -13,10 +13,13 @@ import { TaskAttachmentsModule } from './modules/task-attachments/task-attachmen
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ActivityLogsModule } from './modules/activity-logs/activity-logs.module';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { HealthModule } from './modules/health/health.module';
+import { MailModule } from './modules/mail/mail.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -59,6 +62,7 @@ import { HealthModule } from './modules/health/health.module';
       },
     ]),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -80,6 +84,8 @@ import { HealthModule } from './modules/health/health.module';
     TaskAttachmentsModule,
     NotificationsModule,
     ActivityLogsModule,
+    MailModule,
+    SchedulerModule,
   ],
   controllers: [],
   providers: [

@@ -8,12 +8,17 @@ import { AppEvents } from 'src/common/constants/events.constant';
 import { TaskAssignedEvent } from './events/task-assigned.event';
 import { TaskStatusChangedEvent } from './events/task-status-changed.event';
 import { CommentAddedEvent } from './events/comment-added.event';
+import { MailService } from 'src/modules/mail/mail.service';
+import { User } from 'src/modules/users/entities/user.entity';
 
 @Injectable()
 export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly notificationsRepository: Repository<Notification>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
+    private readonly mailService: MailService,
   ) {}
 
   async create(data: {
@@ -154,6 +159,23 @@ export class NotificationsService {
         workspaceId: event.workspaceId,
       },
     });
+
+    // Send email notification to assignee asynchronously
+    try {
+      const recipient = await this.usersRepository.findOne({
+        where: { id: event.assigneeId },
+      });
+      if (recipient && recipient.email) {
+        await this.mailService.sendTaskAssignedEmail({
+          to: recipient.email,
+          userName: recipient.fullName || 'User',
+          taskTitle: event.taskTitle,
+          assignerName: event.actorName,
+        });
+      }
+    } catch {
+      // Avoid failing notification process if email dispatch encounters an error
+    }
   }
 
   @OnEvent(AppEvents.TASK_STATUS_CHANGED)

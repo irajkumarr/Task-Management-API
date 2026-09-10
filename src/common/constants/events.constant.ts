@@ -6,6 +6,8 @@ export const AppEvents = {
   TASK_MOVED: 'task.moved',
   TASK_UPDATED: 'task.updated',
   TASK_DELETED: 'task.deleted',
+  TASK_DUE_SOON: 'task.due_soon',
+  TASK_OVERDUE: 'task.overdue',
 
   // Task Attachments
   TASK_ATTACHMENT_UPLOADED: 'task.attachment.uploaded',

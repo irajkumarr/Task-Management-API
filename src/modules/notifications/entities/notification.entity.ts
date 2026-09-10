@@ -16,6 +16,7 @@ export const NotificationType = {
   TASK_STATUS_CHANGED: 'task_status_changed',
   TASK_COMMENT_ADDED: 'task_comment_added',
   TASK_DUE_SOON: 'task_due_soon',
+  TASK_OVERDUE: 'task_overdue',
   WORKSPACE_INVITATION: 'workspace_invitation',
 } as const;
 
